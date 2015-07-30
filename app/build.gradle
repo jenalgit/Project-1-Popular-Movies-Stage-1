@@ -41,5 +41,6 @@ android {
 dependencies {
     compile 'com.android.support:appcompat-v7:22.2.1'
     compile 'info.movito:themoviedbapi:1.1'
+    compile 'com.squareup.picasso:picasso:2.3.3'
 }
 
