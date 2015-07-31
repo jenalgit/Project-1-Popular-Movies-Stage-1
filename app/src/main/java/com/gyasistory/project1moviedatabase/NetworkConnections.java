@@ -9,7 +9,11 @@ import android.net.NetworkInfo;
  */
 public class NetworkConnections {
 
-
+    /**
+     *  This method checks for a network connection.
+     * @param context
+     * @return Boolean value
+     */
     public static Boolean networkcheck(Context context){
 
         Boolean returnValue = false; // Initial Value

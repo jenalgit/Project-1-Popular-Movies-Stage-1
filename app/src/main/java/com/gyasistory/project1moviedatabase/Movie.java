@@ -15,8 +15,22 @@ public class Movie implements Serializable {
     private String poster_path;
     private double popularity;
     private String title;
+    private  int vote_average;
+    private int vote_count;
 
+    public int getVote_count() {
+        return vote_count;
+    }
+    public void setVote_count(int vote_count) {
+        this.vote_count = vote_count;
+    }
 
+    public int getVote_average() {
+        return vote_average;
+    }
+    public void setVote_average(int vote_average) {
+        this.vote_average = vote_average;
+    }
 
     public String getBackdrop_path() {
         return backdrop_path;

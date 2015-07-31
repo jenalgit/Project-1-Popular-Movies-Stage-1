@@ -33,11 +33,12 @@ public class DetailActivity extends ActionBarActivity {
             // Load image in Image View
             ImageView detailImage = (ImageView) findViewById(R.id.detail_image);
             Picasso.with(this).load("https://image.tmdb.org/t/p/w185" + movieIntent.getPoster_path())
+                    .placeholder(R.drawable.poster_place_holder)
                     .into(detailImage);
 
             // Load Release Date
             TextView releaseDateText = (TextView) findViewById(R.id.detail_release_date);
-            releaseDateText.setText( movieIntent.getRelease_date());
+            releaseDateText.setText(movieIntent.getRelease_date());
 
             // Load Popularity
             TextView popularityText = (TextView) findViewById(R.id.detail_popularity);
@@ -46,6 +47,14 @@ public class DetailActivity extends ActionBarActivity {
             //Load Overview
             TextView overviewText = (TextView) findViewById(R.id.detail_overview);
             overviewText.setText(movieIntent.getOverview());
+
+            // Load Average
+            TextView voteAverageText = (TextView) findViewById(R.id.detail_vote_average);
+            voteAverageText.setText("Voter Average: " + movieIntent.getVote_average());
+
+            // Load Vote Count
+            TextView voteCountText = (TextView) findViewById(R.id.detail_vote_count);
+            voteCountText.setText("Voter Count: " + movieIntent.getVote_count());
         } else {
             Toast.makeText(this, "ERROR No data was read",
                     Toast.LENGTH_LONG).show();

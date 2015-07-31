@@ -46,7 +46,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:text="2016"
-                    android:textSize="45sp" />
+                    android:textSize="40sp" />
 
                 <TextView
                     android:id="@+id/detail_popularity"
@@ -55,6 +55,14 @@
                     android:gravity="center_horizontal"
                     android:text="popularity \n 70.3"
                     android:textSize="30sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/detail_vote_count"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/detail_vote_average"/>
             </LinearLayout>
         </LinearLayout>
 

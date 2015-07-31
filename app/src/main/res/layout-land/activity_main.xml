@@ -13,6 +13,7 @@
 
     <GridView
         android:id="@+id/topMovieGrid"
+        android:gravity="center_horizontal"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:columnWidth="200dp"

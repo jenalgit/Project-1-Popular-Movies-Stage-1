@@ -4,8 +4,10 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -29,10 +31,12 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
+/**
+ * Created by gyasistory on 7/30/15.
+ */
 
 public class MainActivity extends ActionBarActivity {
 
@@ -41,11 +45,8 @@ public class MainActivity extends ActionBarActivity {
     GridView mMainGrid;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+    protected void onResume() {
+        super.onResume();
         if (NetworkConnections.networkcheck(MainActivity.this)) {
             new MainSync().execute();
         } else {
@@ -56,6 +57,16 @@ public class MainActivity extends ActionBarActivity {
             dialog.show();
         }
         mMainGrid = (GridView) findViewById(R.id.topMovieGrid);
+
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
 
     }
     @Override
@@ -74,6 +85,8 @@ public class MainActivity extends ActionBarActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent optionIntent = new Intent(this, OrganizationPreferenceActivity.class);
+            startActivity(optionIntent);
             return true;
         }
 
@@ -97,10 +110,18 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected String doInBackground(Void... params) {
 
-            String results = ""; //Set up Variable for result
+            String results; //Set up Variable for result
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+            String WebAddress;
 
-            String WebAddress = "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key="
-                    + PasscodeString.UserKey;
+            // Checking Shared Preference for data
+            if (sharedPreferences.getString("ORG_PREF_LIST", "popular").equals("popular")) {
+                WebAddress = "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key="
+                        + PasscodeString.UserKey;
+            }else {
+                WebAddress = "http://api.themoviedb.org/3/discover/movie?sort_by=vote_average.desc&api_key="
+                        + PasscodeString.UserKey;
+            }
             try {
                 URL url = new URL(WebAddress);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -109,10 +130,6 @@ public class MainActivity extends ActionBarActivity {
                 InputStream inputStream = connection.getInputStream();
                 results = IOUtils.toString(inputStream);
                 inputStream.close();
-
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-                results = "N/A";
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -145,32 +162,31 @@ public class MainActivity extends ActionBarActivity {
                     indexMovie.setPoster_path(indexObject.getString("poster_path"));
                     indexMovie.setPopularity(indexObject.getDouble("popularity"));
                     indexMovie.setTitle(indexObject.getString("title"));
+                    indexMovie.setVote_average(indexObject.getInt("vote_average"));
+                    indexMovie.setVote_count(indexObject.getInt("vote_count"));
 
                     movies.add(indexMovie); // Add each item to the list
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
-                Log.e("MainActivity", "JSON Error", e);
+                Log.e(TAG, "JSON Error", e);
             }
 
-            if (movies != null) {
+            CustomGridAdapter adapter = new CustomGridAdapter(MainActivity.this,
+                     movies);
+            mMainGrid.setAdapter(adapter);
 
-                CustomGridAdapter adapter = new CustomGridAdapter(MainActivity.this,
-                         movies);
-                mMainGrid.setAdapter(adapter);
+            mMainGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    Movie movie = (Movie) parent.getAdapter().getItem(position);
 
-                mMainGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        Movie movie = (Movie) parent.getAdapter().getItem(position);
+                    Intent intent = new Intent(MainActivity.this, DetailActivity.class);
+                    intent.putExtra("Movie", movie);
+                    startActivity(intent);
 
-                        Intent intent = new Intent(MainActivity.this, DetailActivity.class);
-                        intent.putExtra("Movie", movie);
-                        startActivity(intent);
-
-                    }
-                });
-            }
+                }
+            });
             dialog.cancel();
 
         }
@@ -247,6 +263,7 @@ public class MainActivity extends ActionBarActivity {
 
                 ImageView imageViewcustom = (ImageView) convertView.findViewById(R.id.customImageView);
                 Picasso.with(context).load("https://image.tmdb.org/t/p/w185" + movieDb.getPoster_path())
+                        .placeholder(R.drawable.poster_place_holder)
                         .into(imageViewcustom);
 
                 return convertView;
