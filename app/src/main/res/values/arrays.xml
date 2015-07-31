@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="org_values">
+        <string name="org_popular">popular</string>
+        <string name="org_rated">rated</string>
+    </string-array>
+
+</resources>

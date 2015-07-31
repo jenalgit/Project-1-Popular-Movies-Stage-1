@@ -1,46 +1,86 @@
 package com.gyasistory.project1moviedatabase;
 
-import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
-import java.util.List;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import info.movito.themoviedbapi.TmdbApi;
-import info.movito.themoviedbapi.TmdbMovies;
-import info.movito.themoviedbapi.model.MovieDb;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends ActionBarActivity {
 
     final static String TAG = "Movie Results";
-    List<MovieDb> movie;
+
     GridView mMainGrid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        new MainSync().execute();
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (NetworkConnections.networkcheck(MainActivity.this)) {
+            new MainSync().execute();
+        } else {
+            AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+            dialog.setTitle(getString(R.string.network_alert_title));
+            dialog.setMessage(getString(R.string.network_alert_message));
+            dialog.setCancelable(false);
+            dialog.show();
+        }
         mMainGrid = (GridView) findViewById(R.id.topMovieGrid);
 
     }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_detail, menu);
+        return true;
+    }
 
-    public class MainSync extends AsyncTask<Void, Void, Void> {
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    public class MainSync extends AsyncTask<Void, Void, String> {
         ProgressDialog dialog;
 
         @Override
@@ -55,42 +95,93 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        protected Void doInBackground(Void... params) {
+        protected String doInBackground(Void... params) {
 
+            String results = ""; //Set up Variable for result
 
+            String WebAddress = "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key="
+                    + PasscodeString.UserKey;
             try {
-                TmdbMovies movies = new TmdbApi("dde7202e494003aa6febda923f3a58c5").getMovies();
-                Log.i(TAG, movies.getLatestMovie().getTitle());
+                URL url = new URL(WebAddress);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.connect();
 
-                movie = movies.getTopRatedMovies("en", 15).getResults();
-                Log.i(TAG, movie.get(0).getTitle());
-            } catch (Exception e) {
+                InputStream inputStream = connection.getInputStream();
+                results = IOUtils.toString(inputStream);
+                inputStream.close();
+
+            } catch (MalformedURLException e) {
                 e.printStackTrace();
-                Log.e(TAG, "Something is Wrong", e);
+                results = "N/A";
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                results = "N/A";
+
             }
-            return null;
+
+
+            return results;
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-            dialog.cancel();
-            if (movie != null) {
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+
+            ArrayList<Movie> movies = new ArrayList<>();
+
+            try {
+                JSONObject mainObject = new JSONObject(s);
+
+                JSONArray resultsArray = mainObject.getJSONArray("results");
+                for (int i = 0; i< resultsArray.length(); i++){
+                    JSONObject indexObject = resultsArray.getJSONObject(i);
+                    Movie indexMovie = new Movie();
+                    indexMovie.setBackdrop_path(indexObject.getString("backdrop_path"));
+                    indexMovie.setId(indexObject.getInt("id"));
+                    indexMovie.setOriginal_title(indexObject.getString("original_title"));
+                    indexMovie.setOverview(indexObject.getString("overview"));
+                    indexMovie.setRelease_date(indexObject.getString("release_date"));
+                    indexMovie.setPoster_path(indexObject.getString("poster_path"));
+                    indexMovie.setPopularity(indexObject.getDouble("popularity"));
+                    indexMovie.setTitle(indexObject.getString("title"));
+
+                    movies.add(indexMovie); // Add each item to the list
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+                Log.e("MainActivity", "JSON Error", e);
+            }
+
+            if (movies != null) {
 
                 CustomGridAdapter adapter = new CustomGridAdapter(MainActivity.this,
-                         movie);
+                         movies);
                 mMainGrid.setAdapter(adapter);
+
+                mMainGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                        Movie movie = (Movie) parent.getAdapter().getItem(position);
+
+                        Intent intent = new Intent(MainActivity.this, DetailActivity.class);
+                        intent.putExtra("Movie", movie);
+                        startActivity(intent);
+
+                    }
+                });
             }
+            dialog.cancel();
 
         }
 
         public class CustomGridAdapter extends BaseAdapter{
             Context context;
-            List<MovieDb> movieDbList;
+            ArrayList<Movie> movieList;
 
-            public CustomGridAdapter(Context context, List<MovieDb> movieDbList) {
+            public CustomGridAdapter(Context context, ArrayList<Movie> movieDbList) {
                 this.context = context;
-                this.movieDbList = movieDbList;
+                this.movieList = movieDbList;
             }
 
             /**
@@ -100,7 +191,7 @@ public class MainActivity extends Activity {
              */
             @Override
             public int getCount() {
-                return movieDbList.size();
+                return movieList.size();
             }
 
             /**
@@ -111,8 +202,8 @@ public class MainActivity extends Activity {
              * @return The data at the specified position.
              */
             @Override
-            public MovieDb getItem(int position) {
-                return movieDbList.get(position);
+            public Movie getItem(int position) {
+                return movieList.get(position);
             }
 
             /**
@@ -150,12 +241,12 @@ public class MainActivity extends Activity {
                 if (convertView == null){
                     convertView = LayoutInflater.from(context).inflate(R.layout.custom_item_row, parent,false);
                 }
-                MovieDb movieDb = getItem(position);
+                Movie movieDb = getItem(position);
 
 
 
                 ImageView imageViewcustom = (ImageView) convertView.findViewById(R.id.customImageView);
-                Picasso.with(context).load("https://image.tmdb.org/t/p/w185" + movieDb.getPosterPath())
+                Picasso.with(context).load("https://image.tmdb.org/t/p/w185" + movieDb.getPoster_path())
                         .into(imageViewcustom);
 
                 return convertView;
